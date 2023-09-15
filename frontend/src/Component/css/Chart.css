@@ -10,15 +10,18 @@
     height: 500px;
     display: flex;
     width: 1000px;
-    justify-content: end;
+    justify-content: flex-end;
 }
 
-.main-chart div{
+.main-chart select{
     background-color: black;
     height: 40px;
     margin: 15px;
     width: 200px;
-    border-radius: 50px
+    border-radius: 50px;
+    color:white;
+    border:none;
+    text-align: center;
 }
 
 .chart-control{
@@ -26,4 +29,11 @@
     background-color: #1A1624;
     width: 300px;
     border-radius: 20px;
+    color: white;
+}
+
+.chart-control form label{
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
