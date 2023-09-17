@@ -1,13 +1,19 @@
 import "./Login.css";
 import {useState} from "react"
+import { useNavigate } from "react-router-dom";
 
 function Login() {
 
     const [userName, setUserName] = useState("")
     const [password, setPassword] = useState("")
 
+    let navigate = useNavigate();
+
     const loginUser = async (e) => {
+        let path = '/dashboard';
+        navigate(path)
     }
+
 
     return(
             <div className="login-box">
