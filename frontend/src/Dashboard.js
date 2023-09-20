@@ -14,95 +14,12 @@ function Dashbord() {
         const [x, y] = d3.pointer(event);
         setData(data.slice(-200).concat(Math.atan2(x, y)));
       }
-    // const ticker = ["AAPL", "MSFT", "AMZN", "TSLA"]
     
     const [com, setCom] = useState({
-        name:"name",
-        per:10   
+        name:"AAPL",
+        per:'12%'
     });
 
-    // useEffect(() => {
-    //     fetch(`http://127.0.0.1:5000/AAPL`)
-    //         .then((res) => res.json())
-    //             .then(async (data) => {
-    //                 let d = await data
-    //                 setCom({
-    //                     name:d.symbol,
-    //                     per:d.volume
-    //                 })
-    //             })
-    // }, [])
-
-    // const [arr, setArr] = useState([])
-    
-    // const newData = (ticker) => {
-    //     return ticker.map((tick) => {
-            // fetch(`http://127.0.0.1:5000/${tick}`,
-            // {
-            //     'methords': 'GET',
-            //     headers:{
-            //         'Content-Type': 'application/json'
-            //     }
-            // })
-            // .then((res) => res.json())
-            //     .then(async (data) => {
-            //         let d = await data
-            //         setCom({
-            //             name:d.symbol,
-            //             per:d.volume
-            //         })
-            //     })
-    //     })
-    // }
-
-    // const newData = ticker.map(async (tick) => {
-    //     await fetch(`http://127.0.0.1:5000/${tick}`,
-    //         {
-    //             'methords': 'GET',
-    //             headers:{
-    //                 'Content-Type': 'application/json'
-    //             }
-    //         })
-    //         .then((res) =>
-    //             res.json())
-    //             .then(async (data) => {
-    //                 let d = await data
-    //                 console.log(d)
-    //                 setCom({
-    //                     name:d.symbol,
-    //                     per:d.volume
-    //                 }, [])
-    //             })
-    // })
-
-    // console.log(newData)
-
-    // useEffect(() => {
-    //     setArr()
-    // }, [])
-   
-
-    // const getData = 
-    //     ticker.map(async(tick) => {
-    //         await fetch(`http://127.0.0.1:5000/${tick}`,
-    //         {
-    //             'methords': 'GET',
-    //             headers:{
-    //                 'Content-Type': 'application/json'
-    //             }
-    //         })
-    //         .then((res) => res.json())
-    //             .then(async (data) => {
-    //                 let d = await data
-    //                 setCom({
-    //                     name:d.symbol,
-    //                     per:d.volume
-    //                 })
-    //             })
-    
-    //     })
-
-    
 
     return(
         <div onMouseMove={onMouseMove} style={{display:"flex", flexDirection:"column", padding:"30px"}}>
