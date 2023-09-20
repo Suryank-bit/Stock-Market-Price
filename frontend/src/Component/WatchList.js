@@ -22,7 +22,7 @@ function WatchList() {
             key:2
         },
         {
-            Ticker:"TSL",
+            Ticker:"TSLA",
             Open:234.5,
             Close:632.5,
             High:544.4,
@@ -36,6 +36,9 @@ function WatchList() {
         <div className="WatchList-Table">
             <table>
                 <thead>
+                    <tr className="heading">
+                        <th><b>WatchList <a href="/" style={{textDecoration:"none", color:"white"}}>+</a></b></th>
+                    </tr>
                     <tr>
                         <th>Ticker</th>
                         <th>Open</th>

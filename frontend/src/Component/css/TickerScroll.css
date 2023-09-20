@@ -10,7 +10,7 @@
   
   #scroll-text {
     /* animation properties */
-    font-size:xx-large;
+    font-size: xx-large;
     -moz-transform: translateX(100%);
     -webkit-transform: translateX(100%);
     transform: translateX(100%);
