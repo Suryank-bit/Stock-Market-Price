@@ -14,9 +14,7 @@ CREATE_USERS_TABLE = (
 CREATE_SETTINGS_TABLE = """CREATE TABLE IF NOT EXISTS settings (user_id INTEGER, start_date TIMESTAMP,
                         end_date TIMESTAMP, ticker TEXT, FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);"""
 
-CREATE_WATCHLIST_TABLE = """CREATE TABLE IF NOT EXISTS watchlist (user_id INTEGER, ticker TEXT, FOREGIN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);"""
-
-# CREATE_HIST_DATA_TABLE = """CREATE TABLE IF NOT EXISTS history (id SERIAL PRIMARY KEY, ticker TEXT, open REAL, close REAL, )"""
+CREATE_WATCHLIST_TABLE = """CREATE TABLE IF NOT EXISTS watchlist (user_id INTEGER, ticker TEXT, FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);"""
 
 INSERT_USER_RETURN_ID = "INSERT INTO users (name, user_name, password) VALUES (%s, %s, %s) RETURNING id;"
 
@@ -30,11 +28,13 @@ GLOBAL_SETTING = """SELECT * FROM settings"""
 
 GLOBAL_WATCHLIST ="""SELECT * FROM watchlist"""
 
-SINGLE_USER = """SELECT * FROM users WHERE user_name = (%s) AND password = (%s)"""
+SINGLE_USER = """SELECT * FROM users WHERE user_name = %s AND password = %s"""
 
-SINGLE_SETTING = """SELECT * FROM setting WHERE user_id = (%s)"""
+SINGLE_SETTING = """SELECT * FROM settings WHERE user_id = %s"""
 
-SINGLE_WATCHLIST = """SELECT * FROM watchlist WHERE user_id = (%s)"""
+SINGLE_WATCHLIST = """SELECT * FROM watchlist WHERE user_id = %s"""
+
+UPDATE_SETTING = """UPDATE settings SET start_date =%s, end_date=%s, ticker=%s  WHERE user_id = %s"""
 
 
 
@@ -46,6 +46,7 @@ load_dotenv()
 
 base_url = os.getenv('URL')
 api = os.getenv('API_KEY')
+temp =os.getenv('temp_key')
 db = os.getenv('DB_NAME')
 user_name = os.getenv('USER')
 passwaord = os.getenv('PASSWORD')
@@ -59,54 +60,107 @@ connection = psycopg2.connect(database=db,
                         host=host,
                         port=port)
 
-# @app.route("/<ticker>", methods=['GET'])
-# def hello_world(ticker):
-#     data = ysf.Ticker(ticker)
-#     return data.info
+def int_func(tick):
+    ticker = tick
+    url = "%sfunction=TIME_SERIES_DAILY&symbol=%s&apikey=%s" %(base_url, ticker, temp)
+    r = requests.get(url)
+    data = r.json()
+    last_date = list(data['Weekly Time Series'])[0]
+    return data['Weekly Time Series'][last_date]
 
-# @app.route("/getCurr", methods=['GET'])
-# def curr_price():
-#     symbol = request.args.get('symbol', default="AAPL")
-#     period = request.args.get('period', default='1y')
-#     interval = request.args.get('interval', default='1mo')
-#     quote = ysf.Ticker(symbol)
-#     hist = quote.history(period=period, interval=interval)
-#     data = hist.to_json()
-#     return data
+@app.post('/customTable')
+def creat_ticker_table():
+    req = request.get_json()
+    ticker = req['ticker']
+    url = "%sfunction=TIME_SERIES_DAILY&symbol=%s&interval=%s&outputsize=full&apikey=%s" %(base_url, ticker, api)
+    start_date = req['start_date']
+    end_date = req['end_date']
+    r = requests.get(url)
+    r = r.json()
+    sliced = r['Time Series (Daily)'][start_date:end_date]
+    with connection:
+        with connection.cursor() as cursor:
+            for key, value in sliced:
+                CREATE_DYNAMIC_TABLE = f"CREATE TABLE IF NOT EXISTS {ticker} (date TIMESTAMP, open REAL, high REAL, low REAL, close REAL);"
+                cursor.execute(CREATE_DYNAMIC_TABLE)
+                INSERT_DATA = f"INSERT INTO {ticker} (date, open , high, low, close) VALUES(%s, %s, %s, %s, %s);"
+                cursor.execute(INSERT_DATA, (key, value['1. open'], value['2. high'], value['3. low'], value['4. close']))
+    return{"message":"table created"}
+
 
 ##########################################################################################################################
+@app.route("/stockFullDaily", methods=['POST'])
+def fullDaily():
+    req = request.form
+    ticker = req['symbol']
+    interval = req['interval']
+    url = "%sfunction=TIME_SERIES_DAILY&symbol=%s&interval=%s&outputsize=full&apikey=%s" %(base_url, ticker, interval, api)
+    r = requests.get(url)
+    data = r.json()
+    return data
 
-@app.route("/getDaily", methods=['GET'])
+@app.post("/stockDaily")
 def daily():
-    req = request.form
+    req = request.get_json()
     ticker = req['symbol']
-    interval = req['interval']
-    url = "%sfunction=TIME_SERIES_DAILY&symbol=%s.BSE&interval=%s&apikey=%s" %(base_url, ticker, interval, api)
+    start_date = req['start_date']
+    end_date = req['end_date']
+    url = "%sfunction=TIME_SERIES_DAILY&symbol=%s&apikey=%s" %(base_url, ticker, temp)
     r = requests.get(url)
     data = r.json()
-    return data
+    sliced = r['Time Series (Daily)'][start_date:end_date]
+    return sliced
 
-@app.route("/getWeekly", methods=['GET'])
+@app.get("/gain")
+def daily():
+    url = "%sfunction=TOP_GAINERS_LOSERS&apikey=%s" %(base_url, temp)
+    r = requests.get(url)
+    data = r.json()
+    top_gainers = data['top_gainers'][:5]
+    res = []
+    for gain in top_gainers:
+        res += {"ticker":gain['ticker'], "per":gain['change_percentage']}
+    return res
+
+@app.post("/dailyQuote")
+def quote():
+    req = request.get_json()
+    ticker  =req['symbol']
+    url = "%sfunction=GLOBAL_QUOTE&symbol=%s&apikey=%s" %(base_url, ticker, temp)
+    r = requests.get(url)
+    data = r.json()
+    return data['Global Quote']
+
+@app.route("/stockWeekly", methods=['POST'])
 def weekly():
-    req = request.form
+    req = request.get_json()
     ticker = req['symbol']
-    interval = req['interval']
-    url = "%sfunction=TIME_SERIES_WEEKLY&symbol=%s.BSE&interval=%s&apikey=%s" %(base_url, ticker, interval, api)
+    url = "%sfunction=TIME_SERIES_WEEKLY&symbol=%s&apikey=%s" %(base_url, ticker, temp)
     r = requests.get(url)
     data = r.json()
     return data
 
-@app.route("/getMonthly", methods=['GET'])
+@app.route("/pinUp", methods=['POST'])
+def pinUp():
+    req = request.get_json()
+    ticker = req['symbol']
+    url = "%sfunction=TIME_SERIES_WEEKLY&symbol=%s&apikey=%s" %(base_url, ticker, api)
+    r = requests.get(url)
+    data = r.json()
+    last_date = list(data['Weekly Time Series'])[0]
+    return data['Weekly Time Series'][last_date]
+
+@app.route("/stockMonthly", methods=['POST'])
 def monthly():
     req = request.form
     ticker = req['symbol']
     interval = req['interval']
-    url = "%sfunction=TIME_SERIES_MONTHLY&symbol=%s.BSE&interval=%s&apikey=%s" %(base_url, ticker, interval, api)
+    url = "%sfunction=TIME_SERIES_MONTHLY&symbol=%s&interval=%s&apikey=%s" %(base_url, ticker, interval, api)
     r = requests.get(url)
     data = r.json()
     return data
 
-@app.route("/search", methods=['GET'])
+@app.route("/search", methods=['POST'])
 def search():
     req = request.form
     keyword = req['keyword']
@@ -115,6 +169,79 @@ def search():
     data = r.json()
     return data
 
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+@app.route("/cryptoDaily", methods=['POST'])
+def cryptoDail():
+    req = request.get_json()
+    cryptoc = req['crypto']
+    to = req['currency']
+    url = "%sfunction=DIGITAL_CURRENCY_DAILY&symbol=%s&market=%s&apikey=%s" %(base_url, cryptoc, to, api)
+    r = requests.get(url)
+    data = r.json()
+    return data
+
+@app.route("/cryptoWeekly", methods=['POST'])
+def cryptoWee():
+    req = request.get_json()
+    cryptoc = req['crypto']
+    to = req['currency']
+    url = "%sfunction=DIGITAL_CURRENCY_WEEKLY&symbol=%s&market=%s&apikey=%s" %(base_url, cryptoc, to, api)
+    r = requests.get(url)
+    data = r.json()
+    return data
+
+@app.route("/cryptoMonthly", methods=['POST'])
+def cryptoMon():
+    req = request.get_json()
+    cryptoc = req['crypto']
+    to = req['currency']
+    url = "%sfunction=DIGITAL_CURRENCY_MONTHLY&symbol=%s&market=%s&apikey=%s" %(base_url, cryptoc, to, api)
+    r = requests.get(url)
+    data = r.json()
+    return data
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+@app.route("/forexDaily", methods=['POST'])
+def forexFull():
+    req = request.get_json()
+    from_curr = req['from_curr']
+    to_curr = req['to_curr']
+    url = "%sfunction=FX_DAILY&from_symbol=%s&to_symbol=%s&outputsize=full&apikey=%s" %(base_url, from_curr, to_curr, api)
+    r = requests.get(url)
+    data = r.json()
+    return data
+
+@app.route("/forexDaily", methods=['POST'])
+def forexDail():
+    req = request.get_json()
+    from_curr = req['from_curr']
+    to_curr = req['to_curr']
+    url = "%sfunction=FX_DAILY&from_symbol=%s&to_symbol=%s&apikey=%s" %(base_url, from_curr, to_curr, api)
+    r = requests.get(url)
+    data = r.json()
+    return data
+
+@app.route("/forexWeekly", methods=['POST'])
+def forexWee():
+    req = request.get_json()
+    from_curr = req['from_curr']
+    to_curr = req['to_curr']
+    url = "%sfunction=FX_WEEKLY&from_symbol=%s&to_symbol=%s&apikey=%s" %(base_url, from_curr, to_curr, api)
+    r = requests.get(url)
+    data = r.json()
+    return data
+
+@app.route("/forexMonthly", methods=['POST'])
+def forexMon():
+    req = request.get_json()
+    from_curr = req['from_curr']
+    to_curr = req['to_curr']
+    url = "%sfunction=FX_MONTHLY&from_symbol=%s&to_symbol=%s&apikey=%s" %(base_url, from_curr, to_curr, api)
+    r = requests.get(url)
+    data = r.json()
+    return data
 
 #########################################################################################################################
 
@@ -140,7 +267,7 @@ def getUser():
             user = cursor.fetchall()
     return {"user": user}, 200
 
-@app.get("/login")
+@app.post("/login")
 def userLogin():
     data = request.get_json()
     uname = data['user_name']
@@ -149,7 +276,7 @@ def userLogin():
         with connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
             cursor.execute(SINGLE_USER, (uname, password))
             user = cursor.fetchone()
-    return {"user": {"user_id":user['id'], "name":user["name"] ,"user_name":user['user_name'], "password":user['password']}}, 200
+    return {"user": {"user_id":user['id'], "name":user["name"], 'message':"success", 'accessToken': 'test_access_token' }}, 200
 
 
 #################################################################################################################################
@@ -166,7 +293,7 @@ def postSetting():
         with connection.cursor() as cursor:
             cursor.execute(CREATE_SETTINGS_TABLE)
             cursor.execute(INSERT_SETTINGS, (user_id, start_date, end_date, ticker))
-    return {f"settings Created at for {user_id}"}, 201
+    return {"res": f"settings Created at for {user_id}"}, 201
 
 
 @app.get("/settings")
@@ -181,10 +308,22 @@ def getSetting():
 @app.get("/settings/<int:user_id>")
 def getSingleSetting(user_id):
     with connection:
-        with connection.cursor() as cursor:
+        with connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
             cursor.execute(SINGLE_SETTING, (user_id,))
-            setting = cursor.fetchone()[0]
-    return {"setting": setting}, 200
+            setting = cursor.fetchone()
+    return {"setting": {"user_id":setting['user_id'], "start_date":setting['start_date'], "end_date":setting['end_date'], "ticker":setting['ticker']}}, 200
+
+
+@app.put("/settings/<int:user_id>")
+def putSetting(user_id):
+    data = request.get_json()
+    start_date = data['start_date']
+    end_date = data['end_date']
+    ticker = data['ticker']
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(UPDATE_SETTING, (start_date, end_date, ticker, user_id))
+    return {"res": f"settings Updated at for {user_id}"}, 201
 
 
 ###################################################################################################################
@@ -199,7 +338,7 @@ def postWatchlist():
         with connection.cursor() as cursor:
             cursor.execute(CREATE_WATCHLIST_TABLE)
             cursor.execute(INSERT_WATCHLIST, (user_id, ticker))
-    return {f"Warchlist Created at for {user_id}"}, 201
+    return {"res": f"Warchlist Created at for {user_id}"}, 201
 
 
 @app.get("/watchlist")
@@ -215,8 +354,12 @@ def getSingleWatchlist(user_id):
     with connection:
         with connection.cursor() as cursor:
             cursor.execute(SINGLE_WATCHLIST, (user_id,))
-            watchlist = cursor.fetchone()[0]
-    return {"watchlist": watchlist}, 200
+            watchlist = cursor.fetchall()
+    
+    res = {}
+    for k, v in watchlist:
+        res += int_func(v)
+    return {"watchlist": res}, 200
 
 
 #################################################################################################################################

@@ -1,15 +1,23 @@
+import { useEffect, useState } from 'react';
 import './css/TickerScroll.css'
 
 function TickerScroll({props}){
+    const [gain, setGain] = useState([{
+        ticker: "",
+        per: 0
+    }]);
+
+    useEffect(() => {
+        fetch("http://127.0.0.1:5000/gain")
+        .then(res => res.json())
+        .then((data) => {
+            setGain(data)
+        })
+    })
+
     return(
-        <div style={{display:"flex", justifyContent:"space-between"}}>
-        <div id="scroll-container">
-        <div id="scroll-text">{props.name} <span style={{color:"#0AD833"}}>{props.per}</span></div>
-        </div>
-        <div style={{display:"flex", gap:"15px", alignItems:"center", marginRight:"30px"}}>
-            <div style={{backgroundColor:"white", width:"50px", height:"50px", borderRadius:"50%"}}></div>
-            <h2 style={{color:"white", margin:"0"}}>Suryank</h2>
-        </div>
+        <div style={{width:"100%", color:"white"}}>
+        <div id="scroll-text" >{gain.ticker} <span style={{color:"#0AD833"}}>{gain.per}</span></div>
         </div>
     )
 }

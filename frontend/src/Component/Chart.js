@@ -1,64 +1,138 @@
 import "./css/Chart.css"
-import {useState} from"react"
-import * as d3 from "d3"
+import {useEffect, useMemo, useState} from"react"
+import data from "./query.json"
+import CandlestickChart from "./Candle"
 
 
-function Chart({
-    data,
-    width = 640,
-    height = 400,
-    marginTop = 20,
-    marginRight = 20,
-    marginBottom = 20,
-    marginLeft = 20
-}) {
-    
-    const x = d3.scaleLinear([0, data.length - 1], [marginLeft, width - marginRight]);
-    const y = d3.scaleLinear(d3.extent(data), [height - marginBottom, marginTop]);
-    const line = d3.line((d, i) => x(i), y);
-    var today = new Date(),
-    date = today.getDate() + '/ ' + today.getMonth() + '/' + today.getFullYear()
-    const [startDate, setStartDate] = useState(date)
-    const [endDate, setEndDate] = useState(date)
-    const [graphType, setGraphType] = useState('')
+
+
+
+function Chart(props) {
+    const [startDate, setStartDate] = useState()
+    const [endDate, setEndDate] = useState()
+    const [ticker, setTicker] = useState()
+
+    const [stockData, setStockData] = useState()
+
+    fetch("http://127.0.0.1:5000/stockDaily")
+    .then(res => res.json())
+    .then(data => setStockData(data))
+
+
+    const formatStockData = (stockData) => {
+        const formattedData = []
+
+        if (stockData['Time Series (Daily)']) {
+            Object.entries(
+                stockData['Time Series (Daily)']
+            ).map(
+                ([key, value]) =>
+                {
+                    formattedData.push({
+                        date: key,
+                        open:Number(value['1. open']),
+                        high:Number(value['2. high']),
+                        low:Number(value['3. low']),
+                        close:Number(value['4. close']),
+                        volume:Number(value['5. volume'])
+                    })
+                }
+            )
+        }
+        return formattedData
+    }
+
+
+    const handleSubmit = () => {
+        fetch("http://127.0.0.1:5000/settings", {
+            method: 'PUT',
+            body : JSON.stringify({
+                start_date: startDate,
+                end_date: endDate,
+                ticker: ticker
+            }),
+            headers: {
+                'Content-type': 'application/json; charset=UTF-8',
+            }
+        }).then((res) => res.json())
+        .catch((err) => console.log(err))
+
+        fetch("http://127.0.0.1:5000/cutomTable", {
+            method: 'PUT',
+            body : JSON.stringify({
+                start_date: startDate,
+                end_date: endDate,
+                ticker: ticker
+            }),
+            headers: {
+                'Content-type': 'application/json; charset=UTF-8',
+            }
+        }).then((res) => res.json())
+        .catch((err) => console.log(err))
+    }
+
+    // const handleImport = () => {
+    //     fetch("http://127.0.0.1:5000/settings/1")
+    //     .then((res) => res.json())
+    //     .then((data) => {
+    //         console.log(data)
+    //         setStartDate(data['setting']['start_date'])
+    //         setEndDate(data['setting']['end_date'])
+    //         setTicker(data['setting']['ticker'])
+    //     })
+    //     .catch((err) => console.log(err))
+    // }
+
+    const [chartData, setChartData] = useState({})
+
+    // const chartData = useMemo(() => formatStockData(stockData), [stockData])
+
+    const handleImport = () => {
+        setChartData()
+    }
 
     return(
         <div className="chart-section">
             <div className="main-chart">
-                <svg width={width} height={height}>
-                    <path fill="none" stroke="currentColor" stroke-width="1.5" d={line(data)} />
-                    <g fill="white" stroke="currentColor" stroke-width="1.5">
-                        {data.map((d,i) => (<circle key={i} cx={x(i)} cy={y(d)} r="2.5" />))}
-                    </g>
-                </svg>
+                <CandlestickChart data={chartData} />
             </div>
             <div className="chart-control">
                 <form>
                     <div className="date-section">
                         <label>
                             From 
-                            <input type="date" value={startDate}/>
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                            />
                         </label>
                         <label>
                             To
-                            <input type="date" value={endDate}/>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}    
+                            />
+                        </label>
+                    </div>
+                    <div className="ticker">
+                        <label>
+                            Ticker
+                            <input
+                                type="text"
+                                value={ticker}
+                                onChange={(e) => setTicker(e.target.value)}
+                            />
                         </label>
                     </div>
                     <label>
-                        Graph Type
-                        <select>
-                            <option value='candel-stick'>Candel Stick</option>
-                            <option value='line'>Line Graph</option>
-                            <option value='Bar'>Bar Graph</option>
-                        </select>
+                        Apply
+                        <button onClick={handleImport}>Apply</button>
                     </label>
                     <label>
-                        Import Last Setting
-                        <button>Import</button>
-                    </label>
-                    <label>
-                        Save Setting
-                        <button>Save</button>
+                        Save Data
+                        <button onClick={handleSubmit}>Save</button>
                     </label>
                 </form>
             </div>

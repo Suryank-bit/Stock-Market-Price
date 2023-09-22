@@ -9,12 +9,12 @@
 }
 
 .main-chart{
-    background-color: #1A1624;
+    /* background-color: #1A1624; */
+    background-color: white;
     border-radius: 20px;
     height: 500px;
-    display: flex;
     width: 80%;
-    justify-content: flex-end;
+    overflow: auto;
 }
 
 .chart-control{
@@ -27,6 +27,17 @@
 }
 
 .chart-control form select{
+    background-color: black;
+    height: 40px;
+    width: 100%;
+    margin-top: 10px;
+    border-radius: 50px;
+    color:white;
+    border:none;
+    text-align: center;
+}
+
+.ticker input {
     background-color: black;
     height: 40px;
     width: 100%;

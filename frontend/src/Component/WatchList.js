@@ -1,6 +1,41 @@
+import { useEffect, useState } from "react"
 import "./css/WatchList.css"
+import AddDataModal from "./Popup";
 
-function WatchList() {
+function WatchList(props) {
+
+    const [isModalOpen, setModalOpen] = useState(false);
+
+    const [watchData, setWatchData] = useState([])
+
+    const openModal = () => {
+        setModalOpen(true);
+    };
+    
+    const closeModal = () => {
+        setModalOpen(false);
+    };
+
+    useEffect(() => {
+        fetch(`http://127.0.0.1:5000/watchlist/${props.id}`)
+        .then(res => res.json())
+        .then(data => setWatchData(data))
+        
+    },[])
+
+    const handleSubmit = (data) => {
+        fetch("http://127.0.0.1:5000/watchlist", {
+            method: 'POST',
+            body: ({
+                ticker: data
+            }),
+            headers: {
+                'Content-type': 'application/json; charset=UTF-8',
+            }
+        }).then(res => res.json())
+        .then((data) => setWatchData([...watchData, data]))
+        
+    };
 
     const stocks = [
         {
@@ -37,7 +72,7 @@ function WatchList() {
             <table>
                 <thead>
                     <tr className="heading">
-                        <th><b>WatchList <a href="/" style={{textDecoration:"none", color:"white"}}>+</a></b></th>
+                        <th colSpan={5}><b>WatchList <a onClick={openModal} style={{textDecoration:"none", color:"white", cursor:'pointer'}}>+</a></b></th>
                     </tr>
                     <tr>
                         <th>Ticker</th>
@@ -45,7 +80,6 @@ function WatchList() {
                         <th>Close</th>
                         <th>High</th>
                         <th>Low</th>
-                        <th>Per Cent</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -57,12 +91,17 @@ function WatchList() {
                                 <td>{data.Close}</td>
                                 <td>{data.High}</td>
                                 <td>{data.Low}</td>
-                                <td>{data.per}</td>
                             </tr>
                         )
                     })}
                 </tbody>
             </table>
+            <AddDataModal isOpen={isModalOpen} onClose={closeModal} onSubmit={handleSubmit} />
+            <ul>
+                {watchData.map((item, index) => (
+                    <li key={index}>{item}</li>
+                ))}
+            </ul>
         </div>
     )
 }

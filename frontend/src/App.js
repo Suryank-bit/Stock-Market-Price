@@ -1,11 +1,23 @@
 import './App.css';
-import Dashbord from './Dashboard';
+import {BrowserRouter, Route, Routes} from 'react-router-dom';
+import Dashboard from './Dashboard';
+import Login from './Login';
 
 function App() {
 
+  const token = localStorage.getItem('accessToken');
+
+  if(!token) {
+    return <Login />
+  }
+
   return (
     <div className="App">
-      <Dashbord />
+      <BrowserRouter>
+        <Routes>
+          <Route path='/dashboard' element={<Dashboard />} />
+        </Routes>
+      </BrowserRouter>
     </div>
   );
 }

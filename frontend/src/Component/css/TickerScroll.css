@@ -1,4 +1,4 @@
-     #scroll-container {
+     /* #scroll-container {
     border: 3px solid black;
     border-radius: 5px;
     overflow: hidden;
@@ -7,7 +7,7 @@
     width: -webkit-fill-available;
     width: -moz-available;
   }
-  
+   */
   #scroll-text {
     /* animation properties */
     font-size: xx-large;
@@ -15,7 +15,7 @@
     -webkit-transform: translateX(100%);
     transform: translateX(100%);
     
-    -moz-animation: my-animation 30s linear infinite;
+    -moz-animation: my-animation 45s linear ease-in-out;
     -webkit-animation: my-animation 30s linear infinite;
     animation: my-animation 30s linear infinite;
   }
